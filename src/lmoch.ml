@@ -73,7 +73,7 @@ let () =
     (match Checker.check ft main_node with
     | Checker.True -> Format.printf "TRUE PROPERTY@."
     | Checker.False -> Format.printf "FALSE PROPERTY@."
-    | Checker.Unknown -> Format.printf "UNKNOWN@."
+    | Checker.Unknown -> Format.printf "CANNOT DECIDE@."
     | Checker.Error str -> Format.printf "ERROR: %s@." str
     );
 
