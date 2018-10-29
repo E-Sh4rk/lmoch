@@ -1,0 +1,2 @@
+SMT-Solver:
+  - Alt-Ergo-Zero car connait déjà Z3 (pour pouvoir comparer)
