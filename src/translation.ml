@@ -37,3 +37,11 @@ let declare_symbols_of_node (node:t_node) symbols =
   in
   let all_locals = node.tn_input @ node.tn_output @ node.tn_local in
   List.fold_left add_local symbols all_locals
+
+type local_environment = t_node * (Hstring.t IntMap.t)
+type environment = local_environment list
+
+let formula_of_var env local_env (eq:t_equation) n =
+  (* TODO *)
+  Formula.make_lit Formula.Eq
+    [ Term.make_int (Num.Int 0) ; Term.make_int (Num.Int 1) ]
