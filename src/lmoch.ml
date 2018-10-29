@@ -70,8 +70,12 @@ let () =
     if !type_only then exit 0;
     if main_node = "" then exit 0;
 
-    (* XXX TODO XXX *)
-    Format.printf "Don't know@.";
+    (match Checker.check ft main_node with
+    | Checker.True -> Format.printf "TRUE PROPERTY@."
+    | Checker.False -> Format.printf "FALSE PROPERTY@."
+    | Checker.Unknown -> Format.printf "UNKNOWN@."
+    | Checker.Error str -> Format.printf "ERROR: %s@." str
+    );
 
     exit 0
   with
