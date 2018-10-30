@@ -41,7 +41,15 @@ let declare_symbols_of_node (node:t_node) symbols =
 type local_environment = t_node * (Hstring.t IntMap.t)
 type environment = local_environment list
 
-let formula_of_var env local_env (eq:t_equation) n =
+let term_of_pattern local_env pattern n =
   (* TODO *)
+  Term.make_int (Num.Int 0)
+
+let term_of_expr env local_env expr n =
+  (* TODO *)
+  Term.make_int (Num.Int 0)
+
+let formula_of_eq env local_env (eq:t_equation) n =
   Formula.make_lit Formula.Eq
-    [ Term.make_int (Num.Int 0) ; Term.make_int (Num.Int 1) ]
+    [ term_of_pattern local_env eq.teq_patt n ; term_of_expr env local_env eq.teq_expr n ]
+    
