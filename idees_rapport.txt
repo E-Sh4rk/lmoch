@@ -1,2 +1,5 @@
 SMT-Solver:
   - Alt-Ergo-Zero car connait déjà Z3 (pour pouvoir comparer)
+
+Translation:
+  - Reals are represented with a Ratio, with a fixed denominator (precision)

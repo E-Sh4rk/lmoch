@@ -5,7 +5,7 @@ open Asttypes
 open Typed_ast
 open Ident
 
-let real_precision = 1000
+let real_denominator = 1000
 
 module IntMap = Map.Make(struct type t = int let compare = compare end)
 
@@ -35,8 +35,8 @@ let const_to_smt_term c =
   | Asttypes.Cbool b -> if b then Term.t_true else Term.t_false
   | Asttypes.Cint i -> Term.make_int (Num.Int i)
   | Asttypes.Creal f ->
-    let numerator = (Num.Int (truncate (f*.(float_of_int real_precision)))) in
-    let denominator = Num.Int real_precision in
+    let numerator = (Num.Int (truncate (f*.(float_of_int real_denominator)))) in
+    let denominator = Num.Int real_denominator in
     Term.make_real (Num.div_num numerator denominator)
 
 let declare_symbols_of_node (node:t_node) symbols =
@@ -49,8 +49,8 @@ let declare_symbols_of_node (node:t_node) symbols =
   let all_locals = node.tn_input @ node.tn_output @ node.tn_local in
   List.fold_left add_local symbols all_locals
 
-type local_environment = t_node * (Hstring.t IntMap.t)
-type environment = local_environment list
+type local_context = t_node * (Hstring.t IntMap.t)
+type context = local_context list
 
 let term_of_int i =
   Term.make_int (Num.Int i)
