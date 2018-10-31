@@ -68,8 +68,48 @@ let terms_of_pattern local_ctx n pattern =
   List.map (term_of_ident local_ctx n) pattern.tpatt_desc
 
 let rec terms_of_operator ctx local_ctx n op exprs =
-  (* TODO *)
-  []
+  let ts = List.map (terms_of_expr ctx local_ctx n) exprs in
+  let unique_term ts =
+    (* Operators are not defined on tuples (at least for now) *)
+    assert (List.length ts = 1) ;
+    List.hd ts
+  in
+  let ts = List.map unique_term ts in
+  match op with
+  | Op_not ->
+    assert (List.length ts = 1) ;
+    let t = List.hd ts in
+    [term_of_formula (Formula.make Formula.Not [formula_of_term t])]
+  | Op_if ->
+    assert (List.length ts = 3) ;
+    let tcond = List.hd ts in
+    let tif = List.hd (List.tl ts) in
+    let telse = List.hd (List.tl (List.tl ts)) in
+    [Term.make_ite (formula_of_term tcond) tif telse]
+  | Op_eq | Op_neq | Op_lt | Op_le | Op_gt | Op_ge
+  | Op_add | Op_sub | Op_mul | Op_div | Op_mod
+  | Op_add_f | Op_sub_f | Op_mul_f | Op_div_f
+  | Op_and | Op_or | Op_impl ->
+    assert (List.length ts = 2) ;
+    let t1 = List.hd ts in
+    let t2 = List.hd (List.tl ts) in
+    begin match op with
+      | Op_eq -> [term_of_formula (Formula.make_lit Formula.Eq [t1 ; t2])]
+      | Op_neq -> [term_of_formula (Formula.make_lit Formula.Neq [t1 ; t2])]
+      | Op_lt -> [term_of_formula (Formula.make_lit Formula.Lt [t1 ; t2])]
+      | Op_le -> [term_of_formula (Formula.make_lit Formula.Le [t1 ; t2])]
+      | Op_gt -> [term_of_formula (Formula.make Formula.Not [Formula.make_lit Formula.Le [t1 ; t2]])]
+      | Op_ge -> [term_of_formula (Formula.make Formula.Not [Formula.make_lit Formula.Lt [t1 ; t2]])]
+      | Op_add | Op_add_f -> [Term.make_arith Term.Plus t1 t2]
+      | Op_sub | Op_sub_f -> [Term.make_arith Term.Minus t1 t2]
+      | Op_mul | Op_mul_f -> [Term.make_arith Term.Mult t1 t2]
+      | Op_div | Op_div_f -> [Term.make_arith Term.Div t1 t2]
+      | Op_mod -> [Term.make_arith Term.Modulo t1 t2]
+      | Op_and -> [term_of_formula (Formula.make Formula.And [formula_of_term t1 ; formula_of_term t2])]
+      | Op_or -> [term_of_formula (Formula.make Formula.Or [formula_of_term t1 ; formula_of_term t2])]
+      | Op_impl -> [term_of_formula (Formula.make Formula.Imp [formula_of_term t1 ; formula_of_term t2])]
+      | _ -> assert false
+    end
 
 and terms_of_expr ctx local_ctx n expr =
   match expr.texpr_desc with
