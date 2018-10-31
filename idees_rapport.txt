@@ -1,5 +1,8 @@
 SMT-Solver:
   - Alt-Ergo-Zero car connait déjà Z3 (pour pouvoir comparer)
+  - Minimal ! Plus facile à utiliser que Z3 pour ce projet (plus straight-foward, rien de superflu, plus facile à comprendre/debugguer)
+  - Distinction terme/formule qui aurait pu poser des difficultés, heureusement conversion facile de l'un à l'autre
 
 Translation:
   - Reals are represented with a Ratio, with a fixed denominator (precision)
+  - Conversions (prim applications): not done yet...

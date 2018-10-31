@@ -52,34 +52,55 @@ let declare_symbols_of_node (node:t_node) symbols =
 type local_context = t_node * (Hstring.t IntMap.t)
 type context = local_context list
 
+let formula_of_term t =
+  Formula.make_lit Formula.Eq [t ; Term.t_true]
+
+let term_of_formula f =
+  Term.make_ite f Term.t_true Term.t_false
+
 let term_of_int i =
   Term.make_int (Num.Int i)
 
-let term_of_ident local_env n ident =
-  Term.make_app (IntMap.find ident.id local_env) [n]
+let term_of_ident local_ctx n ident =
+  Term.make_app (IntMap.find ident.id local_ctx) [n]
 
-let terms_of_pattern local_env n pattern =
-  List.map (term_of_ident local_env n) pattern.tpatt_desc
+let terms_of_pattern local_ctx n pattern =
+  List.map (term_of_ident local_ctx n) pattern.tpatt_desc
 
-let rec terms_of_expr env local_env n expr =
+let rec terms_of_operator ctx local_ctx n op exprs =
   (* TODO *)
+  []
+
+and terms_of_expr ctx local_ctx n expr =
   match expr.texpr_desc with
   | TE_const c -> [const_to_smt_term c]
-  | TE_ident ident -> [term_of_ident local_env n ident]
+  | TE_ident ident -> [term_of_ident local_ctx n ident]
+  | TE_op (op, exprs) -> terms_of_operator ctx local_ctx n op exprs
+  | TE_app (id, exprs) ->
+    (* TODO *)
+    failwith "todo"
+  | TE_prim _ ->
+    (*
+    -- typing.ml --
+    let prims = [
+    "int_of_real", (int_of_real, ([Treal] , [Tint])) ;
+    "real_of_int", (real_of_int, ([Tint] , [Treal])) ; ]
+    *)
+    (* TODO *)
+    failwith "Prime applications are not supported yet."
   | TE_arrow (expr1, expr2) ->
     let cond = Formula.make_lit Formula.Eq [n ; term_of_int 0] in
-    let if_ts = terms_of_expr env local_env (term_of_int 0) expr1 in
-    let else_ts = terms_of_expr env local_env n expr2 in
+    let if_ts = terms_of_expr ctx local_ctx (term_of_int 0) expr1 in
+    let else_ts = terms_of_expr ctx local_ctx n expr2 in
     List.map2 (Term.make_ite cond) if_ts else_ts
   | TE_pre expr ->
     let n_minus_one = Term.make_arith Term.Minus n (term_of_int 1) in
-    terms_of_expr env local_env n_minus_one expr
-  | TE_tuple exprs -> List.flatten (List.map (terms_of_expr env local_env n) exprs)
-  | _ -> failwith "TMP"
+    terms_of_expr ctx local_ctx n_minus_one expr
+  | TE_tuple exprs -> List.flatten (List.map (terms_of_expr ctx local_ctx n) exprs)
 
-let formulas_of_eq env local_env n (eq:t_equation) =
-  let pat_terms = terms_of_pattern local_env n eq.teq_patt in
-  let expr_terms = terms_of_expr env local_env n eq.teq_expr in
+let formulas_of_eq ctx local_ctx n (eq:t_equation) =
+  let pat_terms = terms_of_pattern local_ctx n eq.teq_patt in
+  let expr_terms = terms_of_expr ctx local_ctx n eq.teq_expr in
   List.map2 (fun pt et -> Formula.make_lit Formula.Eq [pt ; et]) pat_terms expr_terms
   
     
