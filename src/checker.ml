@@ -66,6 +66,14 @@ let check_k_induction ft main_node k =
 let check ft main_node_name =
   try (
     let main_node = get_node_by_name ft main_node_name in
-    (* TODO *)
-    Unknown
+    let max_k = 3 in
+    let rec aux k =
+      if k > max_k then Unknown
+      else match check_k_induction ft main_node k with
+      | True -> True
+      | False -> False
+      | Unknown -> aux (k+1)
+      | Error str -> Error str
+    in
+    aux 0
   ) with _ -> Error "An unhandled exception has been raised."
