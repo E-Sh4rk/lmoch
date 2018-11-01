@@ -39,12 +39,11 @@ let const_to_smt_term c =
 
 let declare_symbols_of_node (node:t_node) =
   let add_local symbols ((ident:Ident.t), (t:base_ty)) =
-    if IntMap.mem ident.id symbols then symbols
-    else
-      let name = Printf.sprintf "%s__%i" ident.name ident.id in
-      let t_out = base_type_to_smt_type t in
-      let symbol = declare_symbol name [ Type.type_int ] t_out in
-      IntMap.add ident.id symbol symbols
+    assert (not (IntMap.mem ident.id symbols)) ;
+    let name = Printf.sprintf "%s__%i" ident.name ident.id in
+    let t_out = base_type_to_smt_type t in
+    let symbol = declare_symbol name [ Type.type_int ] t_out in
+    IntMap.add ident.id symbol symbols
   in
   let all_locals = node.tn_input @ node.tn_output @ node.tn_local in
   List.fold_left add_local IntMap.empty all_locals

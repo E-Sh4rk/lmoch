@@ -1,4 +1,3 @@
-
 open Aez
 open Smt
 
@@ -26,6 +25,13 @@ let n = Term.make_app (declare_symbol "n" [] Type.type_int) []
 let n_plus k = Term.make_arith Term.Plus n (term_of_int k)
 let n_ge_0 = Formula.make_lit Formula.Le [term_of_int 0 ; n]
 
+let debug_formula f =
+  Formula.print Format.std_formatter f ;
+  Format.print_flush () ; Printf.printf "\n"; flush_all ()
+
+let debug_str str =
+  Printf.printf "%s\n" str ; flush_all ()
+
 let check_k_induction ft main_node k =
   let local_ctx = ref (main_node, IntMap.empty) in
   let delta n =
@@ -44,23 +50,28 @@ let check_k_induction ft main_node k =
   (* Base case *)
   BMC_solver.clear () ;
   for i=0 to k do
-    BMC_solver.assume ~id:0 (delta (term_of_int i))
+    debug_formula (delta (term_of_int i)) ; (*TMP DEBUG*)
+    BMC_solver.assume ~id:i (delta (term_of_int i))
   done ;
   BMC_solver.check () ;
   let ok_fs = List.map (fun i -> ok (term_of_int i)) (create_list k) in
-  let base = BMC_solver.entails ~id:0 (Formula.make Formula.And ok_fs) in
+  debug_formula (Formula.make Formula.And ok_fs) ; (*TMP DEBUG*)
+  let base = BMC_solver.entails ~id:(k+1) (Formula.make Formula.And ok_fs) in
+  debug_str "OK" ; (*TMP DEBUG*)
 
   (* Inductive case *)
   IND_solver.clear () ;
   IND_solver.assume ~id:0 n_ge_0 ;
   for i=0 to k+1 do
-    IND_solver.assume ~id:0 (delta (n_plus i))
+    IND_solver.assume ~id:(i+1) (delta (n_plus i))
   done ;
   for i=0 to k do
-    IND_solver.assume ~id:0 (ok (n_plus i))
+    IND_solver.assume ~id:(k+3+i) (ok (n_plus i))
   done ;
   IND_solver.check () ;
-  let inductive = IND_solver.entails ~id:0 (ok (n_plus (k+1))) in
+  debug_formula (ok (n_plus (k+1))) ; (*TMP DEBUG*)
+  let inductive = IND_solver.entails ~id:(k+k+4) (ok (n_plus (k+1))) in
+  debug_str "OK" ; (*TMP DEBUG*)
   
   (* Result *)
   if not base then False
