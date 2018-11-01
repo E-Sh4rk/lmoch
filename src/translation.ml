@@ -52,6 +52,9 @@ let declare_symbols_of_node (node:t_node) symbols =
 type local_context = t_node * (Hstring.t IntMap.t)
 type context = t_node list
 
+let get_node_by_id ctx id =
+  List.find (fun (n:t_node) -> n.tn_name.id = id) ctx
+
 let formula_of_term t =
   Formula.make_lit Formula.Eq [t ; Term.t_true]
 
@@ -153,7 +156,7 @@ and formulas_of_eq ctx local_ctx n (eq:t_equation) =
   let new_eqs = List.map2 (fun pt et -> Formula.make_lit Formula.Eq [pt ; et]) pat_terms expr_terms in
   eqs@new_eqs
 
-and formulas_of_node ctx n id =
-  (* TODO *)
-  failwith "todo"
+and formulas_of_node ctx n symbols node =
+  let local_ctx = (node, declare_symbols_of_node node symbols) in
+  List.flatten (List.map (formulas_of_eq ctx local_ctx n) node.tn_equs)
     
