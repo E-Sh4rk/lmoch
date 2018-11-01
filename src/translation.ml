@@ -37,7 +37,7 @@ let const_to_smt_term c =
     let denominator = Num.Int real_denominator in
     Term.make_real (Num.div_num numerator denominator)
 
-let declare_symbols_of_node (node:t_node) symbols =
+let declare_symbols_of_node (node:t_node) =
   let add_local symbols ((ident:Ident.t), (t:base_ty)) =
     if IntMap.mem ident.id symbols then symbols
     else
@@ -47,7 +47,7 @@ let declare_symbols_of_node (node:t_node) symbols =
       IntMap.add ident.id symbol symbols
   in
   let all_locals = node.tn_input @ node.tn_output @ node.tn_local in
-  List.fold_left add_local symbols all_locals
+  List.fold_left add_local IntMap.empty all_locals
 
 type local_context = t_node * (Hstring.t IntMap.t)
 type context = t_node list
@@ -127,8 +127,18 @@ and terms_of_expr ctx local_ctx n expr =
   | TE_ident ident -> ([],[term_of_ident local_ctx n ident])
   | TE_op (op, exprs) -> terms_of_operator ctx local_ctx n op exprs
   | TE_app (id, exprs) ->
-    (* TODO *)
-    failwith "todo"
+    let (eqs, ts) = List.split (List.map (terms_of_expr ctx local_ctx n) exprs) in
+    let (eqs, ts) = (List.flatten eqs, List.flatten ts) in
+    let node = get_node_by_id ctx id.id in
+    assert (List.length ts = List.length node.tn_input) ;
+    let (node_ctx, node_eqs) = formulas_of_node ctx n node in
+    let res = List.map (fun (id,_) -> term_of_ident node_ctx n id) node.tn_output in
+    let eq_for_arg (id,_) t =
+      let arg_t = term_of_ident node_ctx n id in
+      Formula.make_lit Formula.Eq [arg_t ; t]
+    in
+    let args_eqs = List.map2 eq_for_arg node.tn_input ts in
+    (eqs@args_eqs@node_eqs, res)
   | TE_prim _ ->
     (*
     -- typing.ml --
@@ -156,7 +166,8 @@ and formulas_of_eq ctx local_ctx n (eq:t_equation) =
   let new_eqs = List.map2 (fun pt et -> Formula.make_lit Formula.Eq [pt ; et]) pat_terms expr_terms in
   eqs@new_eqs
 
-and formulas_of_node ctx n symbols node =
-  let local_ctx = (node, declare_symbols_of_node node symbols) in
-  List.flatten (List.map (formulas_of_eq ctx local_ctx n) node.tn_equs)
+(* Returns a tuple (local_ctx,formulas) where local_ctx represents the local context of the node *)
+and formulas_of_node ctx n node =
+  let local_ctx = (node, declare_symbols_of_node node) in
+  (local_ctx, List.flatten (List.map (formulas_of_eq ctx local_ctx n) node.tn_equs))
     
