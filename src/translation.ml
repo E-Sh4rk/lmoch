@@ -191,3 +191,4 @@ let formulas_of_main_node nodes main_node reinit_ctxs n =
   remaining_ctxs := List.rev (!created_ctxs) ;
   created_ctxs := [] ;
   (local_ctx, eqs)
+  

@@ -49,9 +49,16 @@ let check_k_induction ft main_node k =
   let base = BMC_solver.entails ~id:k (Formula.make Formula.And ok_fs) in
 
   (* Inductive case *)
-  let inductive = false in
-  (* TODO *)
+  IND_solver.assume ~id:k n_ge_0 ;
+  for i=0 to k+1 do
+    IND_solver.assume ~id:k (delta (n_plus i))
+  done ;
+  for i=0 to k do
+    IND_solver.assume ~id:k (ok (n_plus i))
+  done ;
+  let inductive = IND_solver.entails ~id:k (ok (n_plus (k+1))) in
   
+  (* Result *)
   if not base then False
   else if not inductive then Unknown
   else True
