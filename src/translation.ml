@@ -180,7 +180,7 @@ and formulas_of_internal_node nodes n node =
 
 (* Returns a tuple (ctx,formulas) where ctx represents the local contexts of the node *)
 (* If called on a different main node than last time, 'reinit_ctxs' must be set to true *)
-let formulas_of_main_node nodes main_node n reinit_ctxs =
+let formulas_of_main_node nodes main_node reinit_ctxs n =
   if reinit_ctxs
   then begin
     remaining_ctxs := [] ;
