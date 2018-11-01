@@ -9,6 +9,7 @@ open Typed_ast
 open Ident
 
 module BMC_solver = Smt.Make(struct end)
+module IND_solver = Smt.Make(struct end)
 
 type check_result = True | False | Unknown | Error of string
 
@@ -19,7 +20,11 @@ let create_list n =
   let rec aux acc n =
     if n < 0 then acc else aux (n::acc) (n-1)
   in
-  aux [] (n-1)
+  aux [] n
+
+let n = Term.make_app (declare_symbol "n" [] Type.type_int) []
+let n_plus k = Term.make_arith Term.Plus n (term_of_int k)
+let n_ge_0 = Formula.make_lit Formula.Le [term_of_int 0 ; n]
 
 let check_k_induction ft main_node k =
   let local_ctx = ref (main_node, IntMap.empty) in
@@ -37,7 +42,7 @@ let check_k_induction ft main_node k =
   in
 
   (* Base case *)
-  for i=0 to k-1 do
+  for i=0 to k do
     BMC_solver.assume ~id:k (delta (term_of_int i))
   done ;
   let ok_fs = List.map (fun i -> ok (term_of_int i)) (create_list k) in
@@ -47,7 +52,9 @@ let check_k_induction ft main_node k =
   let inductive = false in
   (* TODO *)
   
-  base && inductive
+  if not base then False
+  else if not inductive then Unknown
+  else True
 
 let check ft main_node_name =
   try (
