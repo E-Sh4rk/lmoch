@@ -127,7 +127,7 @@ and terms_of_expr nodes local_ctx n expr =
     let (eqs, ts) = terms_of_exprs nodes local_ctx n exprs in
     let node = get_node_by_id nodes id.id in
     assert (List.length ts = List.length node.tn_input) ;
-    let (node_ctx, node_eqs) = formulas_of_node nodes n node in
+    let (node_ctx, node_eqs) = formulas_of_internal_node nodes n node in
     let res = List.map (fun (id,_) -> term_of_ident node_ctx n id) node.tn_output in
     let eq_for_arg (id,_) t =
       let arg_t = term_of_ident node_ctx n id in
@@ -161,10 +161,33 @@ and formulas_of_eq nodes local_ctx n (eq:t_equation) =
   let new_eqs = List.map2 (fun pt et -> Formula.make_lit Formula.Eq [pt ; et]) pat_terms expr_terms in
   eqs@new_eqs
 
-(* Returns a tuple (ctxs,formulas) where ctxs represents the local contexts used
-   (the first being the local context of the node) *)
-and formulas_of_node nodes n node = (*TODO: add local contextes memoisation *)
-  let local_ctx = (node, declare_symbols_of_node node) in
+(* Returns a tuple (local_ctx,formulas) where ctx represents the local contexts of the node *)
+and remaining_ctxs = ref []
+and created_ctxs = ref []
+and formulas_of_internal_node nodes n node =
+  let local_ctx =
+    match (!remaining_ctxs) with
+    | [] ->
+      let local_ctx = (node, declare_symbols_of_node node) in
+      local_ctx
+    | local_ctx::ctxs ->
+      remaining_ctxs := ctxs ;
+      local_ctx
+  in
+  created_ctxs := local_ctx::(!created_ctxs);
   let eqs = List.map (formulas_of_eq nodes local_ctx n) node.tn_equs in
   (local_ctx, List.flatten eqs)
-    
+
+(* Returns a tuple (ctx,formulas) where ctx represents the local contexts of the node *)
+(* If called on a different main node than last time, 'reinit_ctxs' must be set to true *)
+let formulas_of_main_node nodes main_node n reinit_ctxs =
+  if reinit_ctxs
+  then begin
+    remaining_ctxs := [] ;
+    created_ctxs := []
+  end
+  ;
+  let (local_ctx, eqs) = formulas_of_internal_node nodes n main_node in
+  remaining_ctxs := List.rev (!created_ctxs) ;
+  created_ctxs := [] ;
+  (local_ctx, eqs)
