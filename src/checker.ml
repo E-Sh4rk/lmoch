@@ -25,6 +25,12 @@ let n = Term.make_app (declare_symbol "n" [] Type.type_int) []
 let n_plus k = Term.make_arith Term.Plus n (term_of_int k)
 let n_ge_0 = Formula.make_lit Formula.Le [term_of_int 0 ; n]
 
+let conjunction fs =
+  match fs with
+  | [] -> Formula.f_true
+  | [f] -> f
+  | fs -> Formula.make Formula.And fs
+
 let debug_formula f =
   Formula.print Format.std_formatter f ;
   Format.print_flush () ; Printf.printf "\n"; flush_all ()
@@ -37,14 +43,14 @@ let check_k_induction ft main_node k =
   let delta n =
     let (lctx, fs) = formulas_of_main_node ft main_node false n in
     local_ctx := lctx ;
-    Formula.make Formula.And fs
+    conjunction fs
   in
   let ok n =
     let ok_var (id,t) =
       assert (t = Tbool);
       formula_of_term (term_of_ident (!local_ctx) n id)
     in
-    Formula.make Formula.And (List.map ok_var main_node.tn_output)
+    conjunction (List.map ok_var main_node.tn_output)
   in
 
   (* Base case *)
@@ -55,8 +61,8 @@ let check_k_induction ft main_node k =
   done ;
   BMC_solver.check () ;
   let ok_fs = List.map (fun i -> ok (term_of_int i)) (create_list k) in
-  debug_formula (Formula.make Formula.And ok_fs) ; (*TMP DEBUG*)
-  let base = BMC_solver.entails ~id:(k+1) (Formula.make Formula.And ok_fs) in
+  debug_formula (conjunction ok_fs) ; (*TMP DEBUG*)
+  let base = BMC_solver.entails ~id:(k+1) (conjunction ok_fs) in
   debug_str "OK" ; (*TMP DEBUG*)
 
   (* Inductive case *)

@@ -3,6 +3,7 @@ SMT-Solver:
   - Minimal ! Plus facile � utiliser que Z3 pour ce projet (plus straight-foward, rien de superflu, plus facile � comprendre/debugguer)
   - Distinction terme/formule qui aurait pu poser des difficult�s, heureusement conversion facile de l'un � l'autre
   - Pas de possibilité de faire une substitution sur une formule existante! (pour n)
+  - Pas de messages d'erreurs claires... Les Or/And appliqués à une liste de 0 ou 1 élément n'est pas géré et entraine une assertion failure
 
 Translation:
   - Reals are represented with a Ratio, with a fixed denominator (precision)
