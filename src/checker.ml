@@ -56,27 +56,23 @@ let check_k_induction ft main_node k =
   (* Base case *)
   BMC_solver.clear () ;
   for i=0 to k do
-    (*debug_formula (delta (term_of_int i)) ;*) (*TMP DEBUG*)
-    BMC_solver.assume ~id:i (delta (term_of_int i))
+    BMC_solver.assume ~id:(i+1) (delta (term_of_int i))
   done ;
   BMC_solver.check () ;
-  debug_str "CHECK" ; (*TMP DEBUG*)
   let ok_fs = List.map (fun i -> ok (term_of_int i)) (create_list k) in
-  (*debug_formula (conjunction ok_fs) ;*) (*TMP DEBUG*)
-  let base = BMC_solver.entails ~id:(k+1) (conjunction ok_fs) in
-  debug_str "ENTAILS" ; (*TMP DEBUG*)
+  let base = BMC_solver.entails ~id:(k+2) (conjunction ok_fs) in
 
   (* Inductive case *)
   IND_solver.clear () ;
-  IND_solver.assume ~id:0 n_ge_0 ;
+  IND_solver.assume ~id:1 n_ge_0 ;
   for i=0 to k+1 do
-    IND_solver.assume ~id:(i+1) (delta (n_plus i))
+    IND_solver.assume ~id:(i+2) (delta (n_plus i))
   done ;
   for i=0 to k do
-    IND_solver.assume ~id:(k+3+i) (ok (n_plus i))
+    IND_solver.assume ~id:(k+4+i) (ok (n_plus i))
   done ;
   IND_solver.check () ;
-  let inductive = IND_solver.entails ~id:(k+k+4) (ok (n_plus (k+1))) in
+  let inductive = IND_solver.entails ~id:(k+k+5) (ok (n_plus (k+1))) in
   
   (* Result *)
   if not base then False
@@ -84,7 +80,7 @@ let check_k_induction ft main_node k =
   else True
 
 let check ft main_node_name =
-  Printexc.record_backtrace true ;
+  Printexc.record_backtrace false ; (* Turn to true for debug *)
   try (
     let main_node = get_node_by_name ft main_node_name in
     let max_k = 3 in

@@ -4,6 +4,7 @@ SMT-Solver:
   - Distinction terme/formule qui aurait pu poser des difficult�s, heureusement conversion facile de l'un � l'autre
   - Pas de possibilité de faire une substitution sur une formule existante! (pour n)
   - Pas de messages d'erreurs claires... Les Or/And appliqués à une liste de 0 ou 1 élément n'est pas géré et entraine une assertion failure
+  - Debugging... Voir modifications_aez.txt
 
 Translation:
   - Reals are represented with a Ratio, with a fixed denominator (precision)

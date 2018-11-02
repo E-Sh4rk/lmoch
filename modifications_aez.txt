@@ -1,0 +1,31 @@
+
+Issue 1 (assertion failure when And/Or is applied to less than 2 arguments):
+
+    Failing execution:
+        smt.ml mk_cnf ->
+            when called with a formula in sform but containing a 'Comb (Or lst)' such that len(lst) < 2,
+            it results in an assertion failure
+
+    Solutions proposed (the second one has been used):
+        1. Add a case to handle Comb (Or [])
+        2. Never use And/Or combinators with less than 2 arguments
+        (And combinators are also involved because they are changed to Or when negating)
+
+Issue 2 (Not_found exception, see ex000.lus for a minimal failing example):
+
+    Failing execution (ex000.lus, base case for k=0):
+        smt.ml entails -> call to assume
+        smt.ml assume -> call to CSolver.assume
+        solver.ml assume -> call to init_solver
+        solver.ml init_solver -> call to add_clauses
+        solver.ml add_clauses -> call to add_clause
+        solver.ml add_clause -> case 3 ([a]), call to cancel_until
+        solver.ml cancel_until ->
+            called with the argument lvl=0.
+            both 'env.trail_lim' and 'env.tenv_queue' have size 1.
+            'Vec.get env.tenv_queue lvl' raise 'Not_found' because 'env.tenv_queue'
+            has the default ('dummy') element as first element ('Th.empty ()').
+
+    Solution proposed:
+        Change the behavior of the method Vec.get and Vec.last (vec.ml)
+        so that dummy elements are treated like any other element

@@ -1,4 +1,4 @@
 node check (x: bool) returns (OK: bool);
 let
-  OK = not x; -- the 'not' gives a 'Not found' runtime error
+  OK = not x; -- Results in a runtime error with original version of Aez
 tel

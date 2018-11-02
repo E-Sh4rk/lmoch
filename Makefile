@@ -22,4 +22,3 @@ cleanall:
 	(cd examples; $(MAKE) cleanall)
 
 FORCE:
-
