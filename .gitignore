@@ -8,6 +8,8 @@
 *.cmxs
 *.cmxa
 
+lib/aez-0.3
+
 # ocamlbuild working directory
 *_build/
 

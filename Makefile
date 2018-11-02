@@ -9,6 +9,7 @@ lib/aez-0.3/aez.cmxa:
 	(cd lib ; \
 	 tar xvfz aez-0.3.tar.gz ; \
 	 cd aez-0.3 ; \
+	 cp -f ../vec.ml common/vec.ml ; \
 	 ./configure ; \
 	 $(MAKE))
 
