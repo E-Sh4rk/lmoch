@@ -1,0 +1,56 @@
+% Header
+\documentclass[a4paper]{article}%      autres choix : book, report
+\usepackage[utf8]{inputenc}%           gestion des accents (source)
+\usepackage[T1]{fontenc}%              gestion des accents (PDF)
+\usepackage[francais]{babel}%          gestion du français
+\usepackage{textcomp}%                 caractères additionnels
+\usepackage{mathtools,amssymb,amsthm}% packages de l'AMS + mathtools
+\usepackage{lmodern}%                  police de caractère
+\usepackage[top=2cm,left=2cm,right=2cm,bottom=2cm]{geometry}%     gestion des marges
+\usepackage{graphicx}%                 gestion des images
+\usepackage{array}%                    gestion améliorée des tableaux
+\usepackage{calc}%                     syntaxe naturelle pour les calculs
+\usepackage{titlesec}%                 pour les sections
+\usepackage{titletoc}%                 pour la table des matières
+\usepackage{fancyhdr}%                 pour les en-têtes
+\usepackage{titling}%                  pour le titre
+\usepackage{enumitem}%                 pour les listes numérotées
+\usepackage{hyperref}%                 gestion des hyperliens
+\usepackage{bibentry}
+
+\nobibliography*
+
+\hypersetup{pdfstartview=XYZ}%         zoom par défaut
+
+\setlength{\droptitle}{-5em}   % This is your set screw
+\title{\vspace{1.5cm}Projet: Lustre Model Checker}
+\author{Mickaël LAURENT}
+\date{\vspace{-5ex}}
+
+\pagenumbering{gobble}
+
+\begin{document}
+
+    \maketitle
+
+    \section{Les choix techniques}
+		
+	\begin{itemize}
+		\item \textbf{La gestion des float}: Conversion en fraction avec dénominateur fixé\ldots
+		\item \textbf{Noms de variable}: Pour garantir l'unicité\ldots
+		\item \textbf{Alt-ergo zero}: Connait déjà Z3, comparaison possible. Minimal et adapté aux besoin (rien de superflu)\ldots
+	\end{itemize}
+
+	\section{Difficultés rencontrées et limitations}
+
+	\begin{itemize}
+		\item \textbf{TE\_prim}: L'appel aux fonctions de conversion int/float\ldots
+		\item \textbf{Utilisation d'Alt-ergo zero}: Uniquement implémenté avec AEZ\ldots
+		\item \textbf{Distinction terme/formule}: Mais facile de convertir l'un en l'autre\ldots
+		\item \textbf{Pas de substitution possible}: Pour la variable n\ldots
+		\item \textbf{Déboage nécessaire}: Pas de messages d'erreurs claires de AEZ, échec d'assertions et exceptions non rattrapés\ldots
+	\end{itemize}
+
+	\section{Modifications de AEZ}
+		
+\end{document}
