@@ -36,19 +36,43 @@
     \section{Les choix techniques}
 		
 	\begin{itemize}
-		\item \textbf{La gestion des float}: Conversion en fraction avec dénominateur fixé\ldots
-		\item \textbf{Noms de variable}: Pour garantir l'unicité\ldots
-		\item \textbf{Alt-ergo zero}: Connait déjà Z3, comparaison possible. Minimal et adapté aux besoin (rien de superflu)\ldots
+		\item \textbf{Alt-Ergo Zero}: Connaissant déjà Z3 (je l'avais beaucoup utilisé en stage de M1), j'ai décidé d'utiliser Alt-Ergo Zero pour ce projet,
+		afin d'étendre mon expérience et de pouvoir comparer les deux SMT-solvers. Alt-Ergo Zero s'est trouvé être particulièrement adapté à ce projet:
+		il est très minimal et reconnait exactement le fragment de logique dont j'ai eu besoin. Il est ainsi très adapté aux besoins et ne possède rien superflu).
+		J'ai cependant eu quelques difficultés avec ce SMT-solver: voir section 2 et 3.
+		\item \textbf{La gestion des flotants}: Alt-Ergo Zero ne gère pas les flotants, mais les fractions rationnelles (module Num de OCaml).
+		J'ai donc dû convertir chaque valeur flotante du programme en fraction. Pour cela, j'ai opté pour le plus simple: j'ai fixé un dénominateur,
+		et tous les flotants sont convertis en fraction avec ce dénominateur.
+		En revanche, cela n'est pas très fidèle au comportement des flotants (qui au contraire sont le produit d'une mantisse et d'un exposant dynamique).
+		\item \textbf{Noms de variable}: Pour garantir l'unicité des noms de variable (car une même variable du code peut donner lieu à plusieurs instances,
+		par exemple si elle est locale à un noeud qui est appelé plisuers fois), j'ai décidé d'utiliser un identifiant unique de la forme "NAME\_\_ID\_\_NONCE"
+		où NAME est le nom dela variable (utile pour déboguer), ID son identifiant dans l'AST, et NONCE un identifiant unique (incrémenté pour chaque nouvelle variable).
 	\end{itemize}
 
 	\section{Difficultés rencontrées et limitations}
 
 	\begin{itemize}
-		\item \textbf{TE\_prim}: L'appel aux fonctions de conversion int/float\ldots
-		\item \textbf{Utilisation d'Alt-ergo zero}: Uniquement implémenté avec AEZ\ldots
-		\item \textbf{Distinction terme/formule}: Mais facile de convertir l'un en l'autre\ldots
-		\item \textbf{Pas de substitution possible}: Pour la variable n\ldots
-		\item \textbf{Déboage nécessaire}: Pas de messages d'erreurs claires de AEZ, échec d'assertions et exceptions non rattrapés\ldots
+		\item \textbf{Fonctions TE\_prim}: L'appel aux fonctions 'builtin' (de type TE\_Prim dans l'AST) n'est pas géré.
+		Ces fonctions sont des fonctions de conversion int/float, et je n'ai pas trouvé de manière simple d'encoder cela dans Alt-Ergo Zero.
+		J'ai pensé à encoder cela en introduisant une nouvelle variable du type résultant de la conversion (qui contiendra la valeur convertie)
+		et d'ajouter des inégalités pour contraindre sa valeur (par exemple, pour convertir un flotant $x$ en entier, on introduit une nouvelle
+		variable entière $n$ et on ajoute les inégalités $n <= x$ et $n+1 > x$). Cependant je ne l'ai pas implémenté pour le moment.
+		\item \textbf{Utilisation d'Alt-Ergo Zero}: J'ai utilisé uniquement Alt-Ergo Zero (pas d'interface avec d'autres SMT-solver tels que Z3).
+		Bien que minimal et adapté aux besoins, ce SMT-solver m'a tout de même posé quelques difficultés détaillées ci-après.
+		\item \textbf{Distinction terme/formule}: Alt-Ergo Zero fait une distinction entre les termes (avec lesquels on peut representer les entiers
+		et utiliser l'arithmétique) et les formules (booléenes, avec lesquels on peut utiliser les opérateurs booléens).
+		Cette distinction n'existe pas dans le code, où le type booléen est un type comme un autre.
+		Heureusement, il est facile de convertir un terme en formule (en le comparant avec le terme 't\_true') et inversement (grâce à la construction 'make\_ite').
+		\item \textbf{Pas de substitution possible}: J'ai initialement pensé à construire la formule logique décrivant le système pour une variable $n$ générique,
+		puis à substituer cette variable $n$ par dont j'ai besoin par la suite ($0$, $1$\dots pour l'initialisation, $n$, $n+1$ \ldots pour l'induction).
+		Cependant, une fois une formule construite avec Alt-Ergo Zero, il n'est pas possible de substituer une variable (ou du moins je n'ai pas trouvé comment faire).
+		Une solution aurait été d'introduire un AST intermédiaire pour les formules qui gère les substitions, puis de les convertir en formule de Alt-Ergo Zero par la suite.
+		Cette solution aurait également permit de facilement intégrer plusieurs SMT-solvers (la seule partie à coder pour chaque SMT-solver serait la traduction de l'AST intermédiaire
+		en formule spécifique au SMT-solver). Cependant, comme je n'avais pas dans l'optique d'utiliser plusieurs SMT-solvers, j'ai opté pour une solution plus simple:
+		recalculer les formules à chaque fois, avec la valeur de $n$ désirée. Cela peut sembler peu efficace, mais cette opération est de toute manière très rapide
+		(quasiment linéaire), et a donc un impact négligeable sur les performances (la résolution du système par le SMT-solver est beaucoup plus coûteuse).
+		\item \textbf{Débogage nécessaire}: J'ai été face à deux problèmes d'exécution d'Alt-Ergo Zero (exceptions non rattrapées en runtime). Les exceptions en question n'étant pas
+		très évocatrices, j'ai dû déboguer le programme pour voir quelles en étaient les causes. Je détaille cela dans la prochaine section.
 	\end{itemize}
 
 	\section{Modifications de AEZ}

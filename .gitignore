@@ -9,6 +9,7 @@
 *.cmxa
 
 lib/aez-0.3
+report/report.pdf
 
 # ocamlbuild working directory
 *_build/
