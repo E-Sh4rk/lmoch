@@ -36,6 +36,12 @@
     \section{Les choix techniques}
 		
 	\begin{itemize}
+		\item \textbf{Méthode générale}: Le fonctionnement général du model-checker est le suivant.
+		On commence par fixer k=0, et on génère les formules pour vérifier si la propriété à montrer est k-inductive ou non, comme dans l'énoncé.
+		Si le cas de base n'est pas valide, alors on sait que la propriété est fausse (on peut donc s'arrêter là). Sinon, on vérifie le cas inductif.
+		Si il est valide lui aussi, alors la propriété est k-inductive et on peut également s'arrêter là. Sinon, on ne peut rien conclure pour le moment
+		(on ne sait pas si c'est la propriété qui est fausse ou si c'est notre hypothèse d'induction qui n'est pas assez forte). Dans ce cas, on recommence avec k=1, et ainsi de suite.
+		On s'arrête arbitrairement après k=3, seuil après lequel le model checker admet sa toute impuissance face à la complexité infinie des mathématiques.\\
 		\item \textbf{Alt-Ergo Zero}: Connaissant déjà Z3 (je l'avais beaucoup utilisé en stage de M1), j'ai décidé d'utiliser Alt-Ergo Zero pour ce projet,
 		afin d'étendre mon expérience et de pouvoir comparer les deux SMT-solvers. Alt-Ergo Zero s'est trouvé être particulièrement adapté à ce projet:
 		il est très minimal et reconnait exactement le fragment de logique dont j'ai eu besoin. Il est ainsi très adapté aux besoins et ne possède rien superflu).
