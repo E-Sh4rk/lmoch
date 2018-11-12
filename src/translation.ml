@@ -5,7 +5,8 @@ open Asttypes
 open Typed_ast
 open Ident
 
-let real_denominator = 1000
+let max_denominator = Num.power_num (Num.Int 2) (Num.Int 64)
+let num_frac_base = (Num.Int 2)
 
 module IntMap = Map.Make(struct type t = int let compare = compare end)
 
@@ -28,14 +29,33 @@ let base_type_to_smt_type t =
   | Asttypes.Tint -> Type.type_int
   | Asttypes.Treal -> Type.type_real
 
+let float_to_num f =
+  let rec update_frac_until_exact f num den =
+    if f = 0. then (f, num, den)
+    else if Num.gt_num (Num.mult_num den num_frac_base) max_denominator
+    then begin
+      Printf.printf "Warning: float number has been approximed.\n" ;
+      (f, num, den)
+    end else begin
+      let den = Num.mult_num den num_frac_base in
+      let num = Num.mult_num num num_frac_base in
+      let f = f *. (Num.float_of_num num_frac_base) in
+      let int_f = int_of_float f in
+      let f = f -. (float_of_int int_f) in
+      let num = Num.add_num num (Num.Int int_f) in
+      update_frac_until_exact f num den
+    end
+  in
+  let int_f = int_of_float f in
+  let f = f -. (float_of_int int_f) in
+  let (_, num, den) = update_frac_until_exact f (Num.Int int_f) (Num.Int 1) in
+  Num.div_num num den
+
 let const_to_smt_term c =
   match c with
   | Asttypes.Cbool b -> if b then Term.t_true else Term.t_false
   | Asttypes.Cint i -> Term.make_int (Num.Int i)
-  | Asttypes.Creal f ->
-    let numerator = (Num.Int (truncate (f*.(float_of_int real_denominator)))) in
-    let denominator = Num.Int real_denominator in
-    Term.make_real (Num.div_num numerator denominator)
+  | Asttypes.Creal f -> Term.make_real (float_to_num f)
 
 let declare_symbols_of_node (node:t_node) =
   let add_local symbols ((ident:Ident.t), (t:base_ty)) =
