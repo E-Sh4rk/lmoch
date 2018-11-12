@@ -89,21 +89,38 @@ let term_of_ident local_ctx n ident =
 let terms_of_pattern local_ctx n pattern =
   List.map (term_of_ident local_ctx n) pattern.tpatt_desc
 
+let convert_term_to_int t =
+  let int_var = declare_symbol "__conversion" [] Type.type_int in
+  let int_term = Term.make_app int_var [] in
+  let eq1 = Formula.make_lit Formula.Le [int_term ; t] in
+  let eq2 = Formula.make_lit Formula.Lt [t ; Term.make_arith Term.Plus int_term (term_of_int 1)] in
+  ([eq1;eq2], int_term)
+
+let convert_term_to_float t =
+  (* There seems to be no function in AEZ to change the type of a term, so... *)
+  let float_var = declare_symbol "__conversion" [] Type.type_real in
+  let float_term = Term.make_app float_var [] in
+  let eq = Formula.make_lit Formula.Eq [float_term ; t] in
+  ([eq], float_term)
+
 (* Returns a tuple (eqs,terms) where eqs are some additional required equations *)
 let rec terms_of_operator nodes local_ctx n op exprs =
   let (eqs, ts) = terms_of_exprs nodes local_ctx n exprs in
-  let res =
+  let (eqs',res) =
     match op with
     | Op_not ->
       assert (List.length ts = 1) ;
       let t = List.hd ts in
-      [term_of_formula (Formula.make Formula.Not [formula_of_term t])]
+      ([],[term_of_formula (Formula.make Formula.Not [formula_of_term t])])
     | Op_if ->
       assert (List.length ts = 3) ;
       let tcond = List.hd ts in
       let tif = List.hd (List.tl ts) in
       let telse = List.hd (List.tl (List.tl ts)) in
-      [Term.make_ite (formula_of_term tcond) tif telse]
+      ([],[Term.make_ite (formula_of_term tcond) tif telse])
+    (* For arithmetic operators, we assume arguments to be homogeneous (int * int or float * float) *)
+    (* In other words, conversions must be explicitly stated using real_of_int and int_of_real *)
+    (* We don't do conversions automatically because it seems to make things undecidable for AEZ most of time *)
     | Op_eq | Op_neq | Op_lt | Op_le | Op_gt | Op_ge
     | Op_add | Op_sub | Op_mul | Op_div | Op_mod
     | Op_add_f | Op_sub_f | Op_mul_f | Op_div_f
@@ -112,24 +129,26 @@ let rec terms_of_operator nodes local_ctx n op exprs =
       let t1 = List.hd ts in
       let t2 = List.hd (List.tl ts) in
       begin match op with
-        | Op_eq -> [term_of_formula (Formula.make_lit Formula.Eq [t1 ; t2])]
-        | Op_neq -> [term_of_formula (Formula.make_lit Formula.Neq [t1 ; t2])]
-        | Op_lt -> [term_of_formula (Formula.make_lit Formula.Lt [t1 ; t2])]
-        | Op_le -> [term_of_formula (Formula.make_lit Formula.Le [t1 ; t2])]
-        | Op_gt -> [term_of_formula (Formula.make_lit Formula.Lt [t2 ; t1])]
-        | Op_ge -> [term_of_formula (Formula.make_lit Formula.Le [t2 ; t1])]
-        | Op_add | Op_add_f -> [Term.make_arith Term.Plus t1 t2]
-        | Op_sub | Op_sub_f -> [Term.make_arith Term.Minus t1 t2]
-        | Op_mul | Op_mul_f -> [Term.make_arith Term.Mult t1 t2]
-        | Op_div | Op_div_f -> [Term.make_arith Term.Div t1 t2]
-        | Op_mod -> [Term.make_arith Term.Modulo t1 t2]
-        | Op_and -> [term_of_formula (Formula.make Formula.And [formula_of_term t1 ; formula_of_term t2])]
-        | Op_or -> [term_of_formula (Formula.make Formula.Or [formula_of_term t1 ; formula_of_term t2])]
-        | Op_impl -> [term_of_formula (Formula.make Formula.Imp [formula_of_term t1 ; formula_of_term t2])]
+        | Op_eq -> ([],[term_of_formula (Formula.make_lit Formula.Eq [t1 ; t2])])
+        | Op_neq -> ([],[term_of_formula (Formula.make_lit Formula.Neq [t1 ; t2])])
+        | Op_lt -> ([],[term_of_formula (Formula.make_lit Formula.Lt [t1 ; t2])])
+        | Op_le -> ([],[term_of_formula (Formula.make_lit Formula.Le [t1 ; t2])])
+        | Op_gt -> ([],[term_of_formula (Formula.make_lit Formula.Lt [t2 ; t1])])
+        | Op_ge -> ([],[term_of_formula (Formula.make_lit Formula.Le [t2 ; t1])])
+        | Op_add | Op_add_f -> ([],[Term.make_arith Term.Plus t1 t2])
+        | Op_sub | Op_sub_f -> ([],[Term.make_arith Term.Minus t1 t2])
+        | Op_mul | Op_mul_f -> ([],[Term.make_arith Term.Mult t1 t2])
+        (* AEZ does integer divison when operands are integers, but the semantic is not exactly the same... (t1 is assumed to be a multiple of t2) *)
+        (* However, we use AEZ semantic by default for decidability reasons. *)
+        | Op_div | Op_div_f -> ([],[Term.make_arith Term.Div t1 t2])
+        | Op_mod -> ([],[Term.make_arith Term.Modulo t1 t2])
+        | Op_and -> ([],[term_of_formula (Formula.make Formula.And [formula_of_term t1 ; formula_of_term t2])])
+        | Op_or -> ([],[term_of_formula (Formula.make Formula.Or [formula_of_term t1 ; formula_of_term t2])])
+        | Op_impl -> ([],[term_of_formula (Formula.make Formula.Imp [formula_of_term t1 ; formula_of_term t2])])
         | _ -> assert false
       end
   in
-  (eqs, res)
+  (eqs@eqs', res)
 
 (* Returns a tuple (eqs,terms) where eqs are some additional required equations *)
 and terms_of_exprs nodes local_ctx n exprs =
@@ -154,15 +173,19 @@ and terms_of_expr nodes local_ctx n expr =
     in
     let args_eqs = List.map2 eq_for_arg node.tn_input ts in
     (eqs@args_eqs@node_eqs, res)
-  | TE_prim _ ->
-    (*
-    -- typing.ml --
-    let prims = [
-    "int_of_real", (int_of_real, ([Treal] , [Tint])) ;
-    "real_of_int", (real_of_int, ([Tint] , [Treal])) ; ]
-    *)
-    (* TODO *)
-    failwith "Prime applications are not supported yet."
+  | TE_prim (id, exprs) ->
+    let (eqs, ts) = terms_of_exprs nodes local_ctx n exprs in
+    assert (List.length ts = 1) ;
+    let t = List.hd ts in
+    begin match id.id with
+      | id' when id' = Typing.real_of_int.id ->
+        let (eqs', t) = convert_term_to_float t in
+        (eqs@eqs', [t])
+      | id' when id' = Typing.int_of_real.id ->
+        let (eqs', t) = convert_term_to_int t in
+        (eqs@eqs', [t])
+      | _ -> failwith "Not supported TE_prim application."
+    end
   | TE_arrow (expr1, expr2) ->
     let cond = Formula.make_lit Formula.Eq [n ; term_of_int 0] in
     let (if_eqs,if_ts) = terms_of_expr nodes local_ctx (term_of_int 0) expr1 in

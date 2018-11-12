@@ -46,6 +46,9 @@
 		afin d'étendre mon expérience et de pouvoir comparer les deux SMT-solvers. Alt-Ergo Zero s'est trouvé être particulièrement adapté à ce projet:
 		il est très minimal et reconnait exactement le fragment de logique dont j'ai eu besoin. Il est ainsi très adapté aux besoins et ne possède rien superflu).
 		J'ai cependant eu quelques difficultés avec ce SMT-solver: voir section 2 et 3.\\
+		\item \textbf{Noms de variable}: Pour garantir l'unicité des noms de variable (car une même variable du code peut donner lieu à plusieurs instances,
+		par exemple si elle est locale à un noeud qui est appelé plisuers fois), j'ai décidé d'utiliser un identifiant unique de la forme "NAME\_\_ID\_\_NONCE"
+		où NAME est le nom dela variable (utile pour déboguer), ID son identifiant dans l'AST, et NONCE un identifiant unique (incrémenté pour chaque nouvelle variable).\\
 		\item \textbf{La gestion des flottants}: Alt-Ergo Zero ne gère pas les flottants, mais les fractions rationnelles (module Num de OCaml).
 		J'ai donc dû convertir chaque valeur flottante ('real') du programme en fraction. Pour cela, j'ai implémenté une fonction qui converti un flottant en une fraction
 		deucimal irréductible (on peut facilement changer la base et utiliser des fractions décimales par exemple, mais cela est encore plus éloigné de la représentation réelle des flottants).
@@ -54,26 +57,25 @@
 		Même lorsque le flottant est converti de manière exacte, son comportement n'est pas exactement le même que celui du Num qui le représente
 		(les flottants sont des approximations et donc risquent d'accumuler des erreurs au fil du temps).
 		Ainsi, notre model-checker n'est pas totalement fiable lorsque des flottants ('real') sont utilisés (il peut, dans certains cas, considérer comme vrai
-		un programme qui ne l'est pas du fait du caractère approximatif des flottants). J'ai écris un nouvel exemple (ex005.lus) qui teste le model checker sur les flottants.\\
-		\item \textbf{Noms de variable}: Pour garantir l'unicité des noms de variable (car une même variable du code peut donner lieu à plusieurs instances,
-		par exemple si elle est locale à un noeud qui est appelé plisuers fois), j'ai décidé d'utiliser un identifiant unique de la forme "NAME\_\_ID\_\_NONCE"
-		où NAME est le nom dela variable (utile pour déboguer), ID son identifiant dans l'AST, et NONCE un identifiant unique (incrémenté pour chaque nouvelle variable).
+		un programme qui ne l'est pas du fait du caractère approximatif des flottants). J'ai écris un nouvel exemple (ex005.lus) qui teste le model checker sur les flottants.
 	\end{itemize}
 
 	\section{Difficultés rencontrées et limitations}
 
 	\begin{itemize}
-		\item \textbf{Fonctions TE\_prim}: L'appel aux fonctions 'builtin' (de type TE\_Prim dans l'AST) n'est pas géré par mon model checker.
-		Ces fonctions sont des fonctions de conversion int/float, et je n'ai pas trouvé de manière simple d'encoder cela dans Alt-Ergo Zero.
-		J'ai pensé à encoder cela en introduisant une nouvelle variable du type résultant de la conversion (qui contiendra la valeur convertie)
-		et d'ajouter des inégalités pour contraindre sa valeur (par exemple, pour convertir un flottant $x$ en entier, on introduit une nouvelle
-		variable entière $n$ et on ajoute les inégalités $n <= x$ et $n+1 > x$). Cependant je ne l'ai pas implémenté pour le moment.\\
 		\item \textbf{Utilisation d'Alt-Ergo Zero}: J'ai utilisé uniquement Alt-Ergo Zero (pas d'interface avec d'autres SMT-solver tels que Z3).
 		Bien que minimal et adapté aux besoins, ce SMT-solver m'a tout de même posé quelques difficultés détaillées ci-après.\\
 		\item \textbf{Distinction terme/formule}: Alt-Ergo Zero fait une distinction entre les termes (avec lesquels on peut representer les entiers
 		et utiliser l'arithmétique) et les formules (booléenes, avec lesquels on peut utiliser les opérateurs booléens).
 		Cette distinction n'existe pas dans le code, où le type booléen est un type comme un autre.
 		Heureusement, il est facile de convertir un terme en formule (en le comparant avec le terme 't\_true') et inversement (grâce à la construction 'make\_ite').\\
+		\item \textbf{Fonctions de conversion}: Les fonctions de conversion entier/flottant (de type TE\_Prim dans l'AST) m'ont posées quelques problèmes.
+		Je n'ai pas trouvé de fonction pour changer le type d'un terme dans Alt-Ergo Zero, j'ai donc encodé cela en introduisant une nouvelle variable du type voulu
+		et en ajoutant des (in)équations pour contraindre sa valeur (par exemple, pour convertir un flottant $x$ en entier, on introduit une nouvelle
+		variable entière $n$ et on ajoute les inégalités $n <= x$ et $x < n+1$). Cependant, cela semble être source de nombreuses difficultés pour Alt-Ergo Zero:
+		lors de tests utilisant ces conversions, Alt-Ergo Zero m'indiquait souvent que le système était 'Unsolvable'.
+		J'ai donc décidé d'utiliser ces conversions uniquement lorsque l'utilisateur fait un appel explicite à int\_of\_real ou real\_of\_int, et donc de ne pas introduire
+		de nouvelles conversions dans le code, même lorsque cela aurait été préférable (voir par exemple le cas de la division entière dans le code).\\
 		\item \textbf{Pas de substitution possible}: J'ai initialement pensé à construire la formule logique décrivant le système pour une variable $n$ générique,
 		puis à substituer cette variable $n$ par ce dont j'ai besoin par la suite ($0$, $1$\dots pour l'initialisation, $n$, $n+1$ \ldots pour l'induction).
 		Cependant, une fois une formule construite avec Alt-Ergo Zero, il n'est pas possible de substituer une variable (ou du moins je n'ai pas trouvé comment faire).
