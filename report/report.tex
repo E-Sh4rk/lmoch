@@ -33,7 +33,7 @@
 
     \maketitle
 
-    \section{Les choix techniques}
+    \section{Fonctionnalités et choix techniques}
 		
 	\begin{itemize}
 		\item \textbf{Méthode générale}: Le fonctionnement général du model-checker est le suivant.
@@ -41,7 +41,14 @@
 		Si le cas de base n'est pas valide, alors on sait que la propriété est fausse (on peut donc s'arrêter là). Sinon, on vérifie le cas inductif.
 		Si il est valide lui aussi, alors la propriété est k-inductive et on peut également s'arrêter là. Sinon, on ne peut rien conclure pour le moment
 		(on ne sait pas si c'est la propriété qui est fausse ou si c'est notre hypothèse d'induction qui n'est pas assez forte). Dans ce cas, on recommence avec k=1, et ainsi de suite.
-		On s'arrête arbitrairement après k=3, seuil après lequel le model checker admet sa toute impuissance face à la complexité infinie des mathématiques.\\
+		On s'arrête arbitrairement après k=10, ou si la condition de fin est rencontrée (voir le point suivant).\\
+		\item \textbf{Compression de chemins}: Je me suis inspiré de cet article:\\http://homepage.cs.uiowa.edu/~tinelli/papers/HagTin-FMCAD-08.pdf\\
+		J'ai implémenté, en guise d'amélioration,
+		une compression de chemin très naive (dans l'état actuel de mon implémentation, TOUTES les variables sont considérées comme des variables d'état).
+		Tel quel, ce n'est pas très efficace, mais cela peut etre amélioré en ne considérant comme variables d'état que celles apparaissant en argument d'un operateur pre.
+		J'ai également implémenté la condition de fin proposée dans l'article: avant de tester la k-induction, si tout chemin initial de taille k+1 possède deux états identiques (i.e. n'est pas compressé),
+		alors on peut s'arreter là et renvoyer Vrai (car les initialisations précédentes suffisent alors à assurer la correction du programme).
+		L'article cité plus haut propose également des améliorations basées sur des abstractions structurelles, mais je n'en ai pas implémenté.\\
 		\item \textbf{Alt-Ergo Zero}: Connaissant déjà Z3 (je l'avais beaucoup utilisé en stage de M1), j'ai décidé d'utiliser Alt-Ergo Zero pour ce projet,
 		afin d'étendre mon expérience et de pouvoir comparer les deux SMT-solvers. Alt-Ergo Zero s'est trouvé être particulièrement adapté à ce projet:
 		il est très minimal et reconnait exactement le fragment de logique dont j'ai eu besoin. Il est ainsi très adapté aux besoins et ne possède rien superflu).

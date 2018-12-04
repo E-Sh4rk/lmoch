@@ -234,3 +234,30 @@ let formulas_of_main_node nodes main_node reinit_ctxs n =
   created_ctxs := [] ;
   (local_ctx, eqs)
   
+let get_last_contexts _ =
+  !remaining_ctxs
+
+let get_all_symbols _ =
+  let ctxs = get_last_contexts () in
+  let add_symbols acc ctx =
+    let (_,m) = ctx in
+    let (_,s) = List.split (IntMap.bindings m) in
+    acc@s
+  in
+  List.fold_left add_symbols [] ctxs
+
+let conjunction fs =
+  match fs with
+  | [] -> Formula.f_true
+  | [f] -> f (* Conjunctions of < 2 elts results in a runtime exception... *)
+  | fs -> Formula.make Formula.And fs
+
+let states_equal_formula n1 n2 =
+  let symbols = get_all_symbols () in
+  let eq_for_symbol s =
+    let t1 = Term.make_app s [n1] in
+    let t2 = Term.make_app s [n2] in
+    Formula.make_lit Formula.Eq [t1; t2]
+  in
+  let eqs = List.map eq_for_symbol symbols in
+  conjunction eqs
