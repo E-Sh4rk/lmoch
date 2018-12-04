@@ -9,6 +9,7 @@ let max_denominator = Num.power_num (Num.Int 2) (Num.Int 64)
 let num_frac_base = (Num.Int 2)
 
 module IntMap = Map.Make(struct type t = int let compare = compare end)
+module IntroducedSymbolMap = Map.Make(struct type t = string * int * Typed_ast.t_expr_desc let compare = compare end)
 
 let unique_nonce =
   let last = ref 0 in
@@ -28,6 +29,11 @@ let base_type_to_smt_type t =
   | Asttypes.Tbool -> Type.type_bool
   | Asttypes.Tint -> Type.type_int
   | Asttypes.Treal -> Type.type_real
+
+let type_of_term t =
+  if Term.is_int t then Type.type_int
+  else if Term.is_real t then Type.type_real
+  else Type.type_bool
 
 let float_to_num f =
   let rec update_frac_until_exact f num den =
@@ -68,7 +74,8 @@ let declare_symbols_of_node (node:t_node) =
   let all_locals = node.tn_input @ node.tn_output @ node.tn_local in
   List.fold_left add_local IntMap.empty all_locals
 
-type local_context = t_node * (Hstring.t IntMap.t)
+(* Local context : Node * Map from local var to its corresponding Hstring * Map from expressions to its corresponding HString (for other variables that must be introduced) *)
+type local_context = t_node * (Hstring.t IntMap.t) * ((Hstring.t IntroducedSymbolMap.t) ref)
 
 let get_node_by_id nodes id =
   List.find (fun (n:t_node) -> n.tn_name.id = id) nodes
@@ -83,22 +90,30 @@ let term_of_int i =
   Term.make_int (Num.Int i)
 
 let term_of_ident local_ctx n ident =
-  let (_, ctx_symbols) = local_ctx in
+  let (_, ctx_symbols, _) = local_ctx in
   Term.make_app (IntMap.find ident.id ctx_symbols) [n]
 
 let terms_of_pattern local_ctx n pattern =
   List.map (term_of_ident local_ctx n) pattern.tpatt_desc
 
-let convert_term_to_int t =
-  let int_var = declare_symbol "__conversion" [] Type.type_int in
+let introduce_variable local_ctx group id expr t_in t_out =
+  let (_,_,m) = local_ctx in
+  match IntroducedSymbolMap.find_opt (group, id, expr) (!m) with
+  | None ->
+    let hstr = declare_symbol (Printf.sprintf "__%s%i" group id) t_in t_out in
+    m := IntroducedSymbolMap.add (group, id, expr) hstr (!m) ;
+    hstr
+  | Some hstr -> hstr
+
+let convert_term_to_int local_ctx origin_expr t =
+  let int_var = introduce_variable local_ctx "ri_conversion" 0 origin_expr [] Type.type_int in
   let int_term = Term.make_app int_var [] in
   let eq1 = Formula.make_lit Formula.Le [int_term ; t] in
   let eq2 = Formula.make_lit Formula.Lt [t ; Term.make_arith Term.Plus int_term (term_of_int 1)] in
   ([eq1;eq2], int_term)
 
-let convert_term_to_float t =
-  (* There seems to be no function in AEZ to change the type of a term, so... *)
-  let float_var = declare_symbol "__conversion" [] Type.type_real in
+let convert_term_to_float local_ctx origin_expr t =
+  let float_var = introduce_variable local_ctx "ir_conversion" 0 origin_expr [] Type.type_real in
   let float_term = Term.make_app float_var [] in
   let eq = Formula.make_lit Formula.Eq [float_term ; t] in
   ([eq], float_term)
@@ -179,10 +194,10 @@ and terms_of_expr nodes local_ctx n expr =
     let t = List.hd ts in
     begin match id.id with
       | id' when id' = Typing.real_of_int.id ->
-        let (eqs', t) = convert_term_to_float t in
+        let (eqs', t) = convert_term_to_float local_ctx (TE_tuple exprs) t in
         (eqs@eqs', [t])
       | id' when id' = Typing.int_of_real.id ->
-        let (eqs', t) = convert_term_to_int t in
+        let (eqs', t) = convert_term_to_int local_ctx (TE_tuple exprs) t in
         (eqs@eqs', [t])
       | _ -> failwith "Not supported TE_prim application."
     end
@@ -193,7 +208,12 @@ and terms_of_expr nodes local_ctx n expr =
     (if_eqs@else_eqs, List.map2 (Term.make_ite cond) if_ts else_ts)
   | TE_pre expr ->
     let n_minus_one = Term.make_arith Term.Minus n (term_of_int 1) in
-    terms_of_expr nodes local_ctx n_minus_one expr
+    let (eqs, ts) = terms_of_expr nodes local_ctx n_minus_one expr in
+    (* We must introduce a new state var (so it will be taken into account when comparing states for path compression) *)
+    let state_vars = List.mapi (fun i t -> introduce_variable local_ctx "state" i expr.texpr_desc [Type.type_int] (type_of_term t)) ts in
+    let sv_terms = List.map (fun hstr -> Term.make_app hstr [n_minus_one]) state_vars in
+    let eqs' = List.map2 (fun t1 t2 -> Formula.make_lit Formula.Eq [t1;t2]) ts sv_terms in
+    (eqs@eqs', sv_terms)
   | TE_tuple exprs ->
     terms_of_exprs nodes local_ctx n exprs
 
@@ -210,7 +230,7 @@ and formulas_of_internal_node nodes n node =
   let local_ctx =
     match (!remaining_ctxs) with
     | [] ->
-      let local_ctx = (node, declare_symbols_of_node node) in
+      let local_ctx = (node, declare_symbols_of_node node, ref IntroducedSymbolMap.empty) in
       local_ctx
     | local_ctx::ctxs ->
       remaining_ctxs := ctxs ;
@@ -237,11 +257,21 @@ let formulas_of_main_node nodes main_node reinit_ctxs n =
 let get_last_contexts _ =
   !remaining_ctxs
 
-let get_all_symbols _ =
+let get_all_local_symbols _ =
   let ctxs = get_last_contexts () in
   let add_symbols acc ctx =
-    let (_,m) = ctx in
+    let (_,m,_) = ctx in
     let (_,s) = List.split (IntMap.bindings m) in
+    acc@s
+  in
+  List.fold_left add_symbols [] ctxs
+
+let get_all_introduced_symbols group =
+  let ctxs = get_last_contexts () in
+  let add_symbols acc ctx =
+    let (_,_,m) = ctx in
+    let bindings = List.filter (fun ((str,_,_),_) -> str = group) (IntroducedSymbolMap.bindings (!m)) in
+    let (_,s) = List.split bindings in
     acc@s
   in
   List.fold_left add_symbols [] ctxs
@@ -253,11 +283,11 @@ let conjunction fs =
   | fs -> Formula.make Formula.And fs
 
 let states_equal_formula n1 n2 =
-  let symbols = get_all_symbols () in
+  let state_symbols = get_all_introduced_symbols "state" in
   let eq_for_symbol s =
     let t1 = Term.make_app s [n1] in
     let t2 = Term.make_app s [n2] in
     Formula.make_lit Formula.Eq [t1; t2]
   in
-  let eqs = List.map eq_for_symbol symbols in
+  let eqs = List.map eq_for_symbol state_symbols in
   conjunction eqs

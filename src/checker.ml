@@ -44,7 +44,7 @@ let path_compressed_formula ns =
 
 let check_k_induction ft main_node k =
   debug_str (Printf.sprintf "Checking %i-induction..." k);
-  let local_ctx = ref (main_node, IntMap.empty) in
+  let local_ctx = ref (main_node, IntMap.empty, ref IntroducedSymbolMap.empty) in
   let delta n =
     let (lctx, fs) = formulas_of_main_node ft main_node false n in
     local_ctx := lctx ;
