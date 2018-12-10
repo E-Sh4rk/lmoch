@@ -140,27 +140,36 @@ let rec terms_of_operator nodes local_ctx n op exprs =
     | Op_add | Op_sub | Op_mul | Op_div | Op_mod
     | Op_add_f | Op_sub_f | Op_mul_f | Op_div_f
     | Op_and | Op_or | Op_impl ->
-      assert (List.length ts = 2) ;
-      let t1 = List.hd ts in
-      let t2 = List.hd (List.tl ts) in
-      begin match op with
-        | Op_eq -> ([],[term_of_formula (Formula.make_lit Formula.Eq [t1 ; t2])])
-        | Op_neq -> ([],[term_of_formula (Formula.make_lit Formula.Neq [t1 ; t2])])
-        | Op_lt -> ([],[term_of_formula (Formula.make_lit Formula.Lt [t1 ; t2])])
-        | Op_le -> ([],[term_of_formula (Formula.make_lit Formula.Le [t1 ; t2])])
-        | Op_gt -> ([],[term_of_formula (Formula.make_lit Formula.Lt [t2 ; t1])])
-        | Op_ge -> ([],[term_of_formula (Formula.make_lit Formula.Le [t2 ; t1])])
-        | Op_add | Op_add_f -> ([],[Term.make_arith Term.Plus t1 t2])
-        | Op_sub | Op_sub_f -> ([],[Term.make_arith Term.Minus t1 t2])
-        | Op_mul | Op_mul_f -> ([],[Term.make_arith Term.Mult t1 t2])
-        (* AEZ does integer divison when operands are integers, but the semantic is not exactly the same... (t1 is assumed to be a multiple of t2) *)
-        (* However, we use AEZ semantic by default for decidability reasons. *)
-        | Op_div | Op_div_f -> ([],[Term.make_arith Term.Div t1 t2])
-        | Op_mod -> ([],[Term.make_arith Term.Modulo t1 t2])
-        | Op_and -> ([],[term_of_formula (Formula.make Formula.And [formula_of_term t1 ; formula_of_term t2])])
-        | Op_or -> ([],[term_of_formula (Formula.make Formula.Or [formula_of_term t1 ; formula_of_term t2])])
-        | Op_impl -> ([],[term_of_formula (Formula.make Formula.Imp [formula_of_term t1 ; formula_of_term t2])])
-        | _ -> assert false
+      if List.length ts = 1 then
+        let t = List.hd ts in
+        begin match op with
+          | Op_add | Op_add_f -> ([],[t])
+          | Op_sub | Op_sub_f -> ([],[Term.make_arith Term.Minus (term_of_int 0) t])
+          | _ -> assert false
+        end
+      else begin
+        assert (List.length ts = 2) ;
+        let t1 = List.hd ts in
+        let t2 = List.hd (List.tl ts) in
+        begin match op with
+          | Op_eq -> ([],[term_of_formula (Formula.make_lit Formula.Eq [t1 ; t2])])
+          | Op_neq -> ([],[term_of_formula (Formula.make_lit Formula.Neq [t1 ; t2])])
+          | Op_lt -> ([],[term_of_formula (Formula.make_lit Formula.Lt [t1 ; t2])])
+          | Op_le -> ([],[term_of_formula (Formula.make_lit Formula.Le [t1 ; t2])])
+          | Op_gt -> ([],[term_of_formula (Formula.make_lit Formula.Lt [t2 ; t1])])
+          | Op_ge -> ([],[term_of_formula (Formula.make_lit Formula.Le [t2 ; t1])])
+          | Op_add | Op_add_f -> ([],[Term.make_arith Term.Plus t1 t2])
+          | Op_sub | Op_sub_f -> ([],[Term.make_arith Term.Minus t1 t2])
+          | Op_mul | Op_mul_f -> ([],[Term.make_arith Term.Mult t1 t2])
+          (* AEZ does integer divison when operands are integers, but the semantic is not exactly the same... (t1 is assumed to be a multiple of t2) *)
+          (* However, we use AEZ semantic by default for decidability reasons. *)
+          | Op_div | Op_div_f -> ([],[Term.make_arith Term.Div t1 t2])
+          | Op_mod -> ([],[Term.make_arith Term.Modulo t1 t2])
+          | Op_and -> ([],[term_of_formula (Formula.make Formula.And [formula_of_term t1 ; formula_of_term t2])])
+          | Op_or -> ([],[term_of_formula (Formula.make Formula.Or [formula_of_term t1 ; formula_of_term t2])])
+          | Op_impl -> ([],[term_of_formula (Formula.make Formula.Imp [formula_of_term t1 ; formula_of_term t2])])
+          | _ -> assert false
+        end
       end
   in
   (eqs@eqs', res)
