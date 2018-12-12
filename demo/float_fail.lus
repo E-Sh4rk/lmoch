@@ -1,0 +1,7 @@
+
+node check () returns (ok: bool);
+var cpt : real;
+let
+  cpt = 0.0 -> if pre(cpt) >= 1.0 then pre(cpt) - 0.1 else pre(cpt) + 0.6;
+  ok = cpt < 1.5;
+tel

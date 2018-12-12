@@ -1,0 +1,7 @@
+
+node check (x: int) returns (ok: bool);
+var i : int;
+let
+  i = x;
+  ok = ((i / 2) * 2 <> i);
+tel

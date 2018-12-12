@@ -1,0 +1,13 @@
+
+node xor (a, b: bool) returns (c:bool);
+let
+  c = (not(a) and b) or (a and (not b));
+tel
+
+node check (x, y: bool) returns (OK: bool);
+var z1,z2: bool;
+let
+  z1 = xor(x, y);
+  z2 = xor(y, x);
+  OK = not(xor(z1,z2));
+tel

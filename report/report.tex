@@ -43,7 +43,7 @@
 		(on ne sait pas si c'est la propriété qui est fausse ou si c'est notre hypothèse d'induction qui n'est pas assez forte). Dans ce cas, on recommence avec k=1, et ainsi de suite.
 		On s'arrête arbitrairement après k=10, ou si la condition de fin est rencontrée (voir le point suivant).\\
 		\item \textbf{Compression de chemins}: Je me suis inspiré de cet article:\\http://homepage.cs.uiowa.edu/~tinelli/papers/HagTin-FMCAD-08.pdf\\
-		J'ai implémenté, en guise d'amélioration, une compression de chemin telle que décrite dans l'article.
+		J'ai implémenté, en guise d'amélioration, une compression de chemins telle que décrite dans l'article.
 		Pour chaque expression figurant dans un operateur pre, j'introduis une nouvelle "variable d'état".
 		La contrainte de compression sur les chemins s'écrit alors simplement (bien que quadratique en la taille du chemin):
 		il suffit de vérifier que toutes les configurations du chemin diffèrent deux à deux d'au moins une variable d'état.
@@ -52,11 +52,11 @@
 		L'article cité plus haut propose également des améliorations basées sur des abstractions structurelles, mais je n'en ai pas implémenté.\\
 		\item \textbf{Alt-Ergo Zero}: Connaissant déjà Z3 (je l'avais beaucoup utilisé en stage de M1), j'ai décidé d'utiliser Alt-Ergo Zero pour ce projet,
 		afin d'étendre mon expérience et de pouvoir comparer les deux SMT-solvers. Alt-Ergo Zero s'est trouvé être particulièrement adapté à ce projet:
-		il est très minimal et reconnait exactement le fragment de logique dont j'ai eu besoin. Il est ainsi très adapté aux besoins et ne possède rien superflu).
+		il est très minimal et reconnait exactement le fragment de logique dont j'ai eu besoin. Il ne possède rien superflu.
 		J'ai cependant eu quelques difficultés avec ce SMT-solver: voir section 2 et 3.\\
 		\item \textbf{Noms de variable}: Pour garantir l'unicité des noms de variable (car une même variable du code peut donner lieu à plusieurs instances,
-		par exemple si elle est locale à un noeud qui est appelé plisuers fois), j'ai décidé d'utiliser un identifiant unique de la forme "NAME\_\_ID\_\_NONCE"
-		où NAME est le nom dela variable (utile pour déboguer), ID son identifiant dans l'AST, et NONCE un identifiant unique (incrémenté pour chaque nouvelle variable).\\
+		par exemple si elle est locale à un noeud qui est appelé plusiers fois), j'ai décidé d'utiliser un identifiant unique de la forme "NAME\_\_ID\_\_NONCE"
+		où NAME est le nom de la variable (utile pour déboguer), ID son identifiant dans l'AST, et NONCE un identifiant unique (incrémenté pour chaque nouvelle variable).\\
 		\item \textbf{La gestion des flottants}: Alt-Ergo Zero ne gère pas les flottants, mais les fractions rationnelles (module Num de OCaml).
 		J'ai donc dû convertir chaque valeur flottante ('real') du programme en fraction. Pour cela, j'ai implémenté une fonction qui converti un flottant en une fraction
 		deucimal irréductible (on peut facilement changer la base et utiliser des fractions décimales par exemple, mais cela est encore plus éloigné de la représentation réelle des flottants).
@@ -65,7 +65,8 @@
 		Même lorsque le flottant est converti de manière exacte, son comportement n'est pas exactement le même que celui du Num qui le représente
 		(les flottants sont des approximations et donc risquent d'accumuler des erreurs au fil du temps).
 		Ainsi, notre model-checker n'est pas totalement fiable lorsque des flottants ('real') sont utilisés (il peut, dans certains cas, considérer comme vrai
-		un programme qui ne l'est pas du fait du caractère approximatif des flottants). J'ai écris un nouvel exemple (ex005.lus) qui teste le model checker sur les flottants.
+		un programme qui ne l'est pas du fait du caractère approximatif des flottants). Voir le fichier float.lus pour tester le model checker sur les flottants.\\
+		\item \textbf{Exemples}: J'ai créé des exemples permettant de tester différents aspects de mon model checker. Vous les trouverez dans le dossier 'demo'. 
 	\end{itemize}
 
 	\section{Difficultés rencontrées et limitations}
@@ -92,7 +93,7 @@
 		en formule spécifique au SMT-solver). Cependant, comme je n'avais pas dans l'optique d'utiliser plusieurs SMT-solvers, j'ai opté pour une solution plus simple:
 		recalculer les formules à chaque fois, avec la valeur de $n$ désirée. Cela peut sembler peu efficace, mais cette opération est de toute manière très rapide
 		(quasiment linéaire), et a donc un impact négligeable sur les performances (la résolution du système par le SMT-solver est beaucoup plus coûteuse).\\
-		\item \textbf{Débogage nécessaire}: J'ai dû faire face à deux problèmes d'exécution d'Alt-Ergo Zero (exceptions non rattrapées en runtime). Les exceptions en question n'étant pas
+		\item \textbf{Débogage nécessaire}: J'ai dû faire face à deux problèmes d'Alt-Ergo Zero (exceptions non rattrapées en runtime). Les exceptions en question n'étant pas
 		très évocatrices, j'ai dû déboguer le programme pour voir quelles en étaient les causes. Je détaille cela dans la prochaine section.
 	\end{itemize}
 
@@ -114,10 +115,10 @@
 		Lorsque l'environment à restaurer est l'environment vide (je ne sais pas si cela est censé arriver, mais en tout cas ça arrive sur la plupart des formules que je génère),
 		alors l'appel à la méthode 'get' du module Vec lance l'exception 'Not\_found' qui n'est pas rattrapée.
 		J'ai modifié ce comportement dans le module Vec (afin de retourner l'élément même s'il est égal à l'élément par défaut,
-		ce qui semble plus cohérent par rapport au comportement de certaines autres méthodes du module Vec).
+		ce qui semble plus cohérent par rapport au comportement de certaines autres méthodes du module).
 		Je ne suis pas totalement sûr que ce changement soit sans effet néfaste à d'autres endroits du code, mais experimentalement cela m'a permis de régler
-		le problème et donne des résultats exactes sur les quelques tests que j'ai fait.
-		Vous pouvez tester mon programme sans ce correctif en recompilant une version non modifiée d'AEZ, mais dans ce cas le model checker devrait échouer sur la plupart des exemples.
+		le problème et donne des résultats exactes sur les tests que j'ai réalisé.
+		Vous pouvez tester mon programme sans ce correctif en recompilant une version non modifiée d'AEZ: le model checker devrait renvoyer une erreur sur la plupart des exemples.
 	\end{itemize}
 		
 \end{document}

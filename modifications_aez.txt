@@ -11,9 +11,9 @@ Issue 1 (assertion failure when And/Or is applied to less than 2 arguments):
         2. Never use And/Or combinators with less than 2 arguments
         (And combinators are also involved because they are changed to Or when negating)
 
-Issue 2 (Not_found exception, see ex000.lus for a minimal failing example):
+Issue 2 (Not_found exception, see aez_exception.lus for a minimal failing example):
 
-    Failing execution (ex000.lus, base case for k=0):
+    Failing execution (aez_exception.lus, base case for k=0):
         smt.ml entails -> call to assume
         smt.ml assume -> call to CSolver.assume
         solver.ml assume -> call to init_solver
