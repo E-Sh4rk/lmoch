@@ -118,7 +118,7 @@ let convert_term_to_float local_ctx origin_expr t =
   let eq = Formula.make_lit Formula.Eq [float_term ; t] in
   ([eq], float_term)
 
-(* Returns a tuple (eqs,terms) where eqs are some additional required equations *)
+(* Returns a tuple (eqs,terms) where eqs are some additional equations that must be added to our system *)
 let rec terms_of_operator nodes local_ctx n op exprs =
   let (eqs, ts) = terms_of_exprs nodes local_ctx n exprs in
   let (eqs',res) =
@@ -174,12 +174,12 @@ let rec terms_of_operator nodes local_ctx n op exprs =
   in
   (eqs@eqs', res)
 
-(* Returns a tuple (eqs,terms) where eqs are some additional required equations *)
+(* Returns a tuple (eqs,terms) where eqs are some additional equations that must be added to our system *)
 and terms_of_exprs nodes local_ctx n exprs =
   let (eqs, ts) = List.split (List.map (terms_of_expr nodes local_ctx n) exprs) in
   (List.flatten eqs, List.flatten ts)
 
-(* Returns a tuple (eqs,terms) where eqs are some additional required equations *)
+(* Returns a tuple (eqs,terms) where eqs are some additional equations that must be added to our system *)
 and terms_of_expr nodes local_ctx n expr =
   match expr.texpr_desc with
   | TE_const c -> ([],[const_to_smt_term c])
@@ -233,7 +233,7 @@ and formulas_of_eq nodes local_ctx n (eq:t_equation) =
   let new_eqs = List.map2 (fun pt et -> Formula.make_lit Formula.Eq [pt ; et]) pat_terms expr_terms in
   eqs@new_eqs
 
-(* Returns a tuple (local_ctx,formulas) where ctx represents the local contexts of the node *)
+(* Returns a tuple (local_ctx,formulas) where local_ctx represents the local context of the node *)
 and remaining_ctxs = ref []
 and created_ctxs = ref []
 and formulas_of_internal_node nodes n node =
@@ -250,7 +250,7 @@ and formulas_of_internal_node nodes n node =
   let eqs = List.map (formulas_of_eq nodes local_ctx n) node.tn_equs in
   (local_ctx, List.flatten eqs)
 
-(* Returns a tuple (ctx,formulas) where ctx represents the local contexts of the node *)
+(* Returns a tuple (local_ctx,formulas) where local_ctx represents the local context of the node *)
 (* If called on a different main node than last time, 'reinit_ctxs' must be set to true *)
 let formulas_of_main_node nodes main_node reinit_ctxs n =
   if reinit_ctxs

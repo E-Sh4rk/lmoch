@@ -42,6 +42,7 @@
 		Si il est valide lui aussi, alors la propriété est k-inductive et on peut également s'arrêter là. Sinon, on ne peut rien conclure pour le moment
 		(on ne sait pas si c'est la propriété qui est fausse ou si c'est notre hypothèse d'induction qui n'est pas assez forte). Dans ce cas, on recommence avec k=1, et ainsi de suite.
 		On s'arrête arbitrairement après k=10, ou si la condition de fin est rencontrée (voir le point suivant).\\
+		Les deux principaux fichiers de mon model checker sont: 'translation.ml' et 'checker.ml'.\\
 		\item \textbf{Compression de chemins}: Je me suis inspiré de cet article:\\http://homepage.cs.uiowa.edu/~tinelli/papers/HagTin-FMCAD-08.pdf\\
 		J'ai implémenté, en guise d'amélioration, une compression de chemins telle que décrite dans l'article.
 		Pour chaque expression figurant dans un operateur pre, j'introduis une nouvelle "variable d'état".
