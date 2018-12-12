@@ -216,13 +216,14 @@ and terms_of_expr nodes local_ctx n expr =
     let (else_eqs,else_ts) = terms_of_expr nodes local_ctx n expr2 in
     (if_eqs@else_eqs, List.map2 (Term.make_ite cond) if_ts else_ts)
   | TE_pre expr ->
-    let n_minus_one = Term.make_arith Term.Minus n (term_of_int 1) in
-    let (eqs, ts) = terms_of_expr nodes local_ctx n_minus_one expr in
+    let (eqs, ts) = terms_of_expr nodes local_ctx n expr in
     (* We must introduce a new state var (so it will be taken into account when comparing states for path compression) *)
     let state_vars = List.mapi (fun i t -> introduce_variable local_ctx "state" i expr.texpr_desc [Type.type_int] (type_of_term t)) ts in
-    let sv_terms = List.map (fun hstr -> Term.make_app hstr [n_minus_one]) state_vars in
+    let sv_terms = List.map (fun hstr -> Term.make_app hstr [n]) state_vars in
     let eqs' = List.map2 (fun t1 t2 -> Formula.make_lit Formula.Eq [t1;t2]) ts sv_terms in
-    (eqs@eqs', sv_terms)
+    let n_minus_one = Term.make_arith Term.Minus n (term_of_int 1) in
+    let sv_terms_m1 = List.map (fun hstr -> Term.make_app hstr [n_minus_one]) state_vars in
+    (eqs@eqs', sv_terms_m1)
   | TE_tuple exprs ->
     terms_of_exprs nodes local_ctx n exprs
 
