@@ -67,29 +67,33 @@ let check_k_induction ft main_node k =
   (* End condition based on path compression (http://homepage.cs.uiowa.edu/~tinelli/papers/HagTin-FMCAD-08.pdf) *)
   let ns = List.map (fun i -> term_of_int i) (create_list k) in
   let complete = BMC_solver.entails ~id:(k+2) (Formula.make Formula.Not [path_compressed_formula ns]) in
-  if complete then True
-  else begin
+  if complete
+  then begin
+    debug_str "All compressed paths have been explored.";
+    True
+  end else begin
     let ok_fs = List.map (fun i -> ok (term_of_int i)) (create_list k) in
     let base = BMC_solver.entails ~id:(k+2) (conjunction ok_fs) in
 
-    (* Inductive case *)
-    IND_solver.clear () ;
-    IND_solver.assume ~id:1 n_ge_0 ;
-    for i=0 to k+1 do
-      IND_solver.assume ~id:(i+2) (delta (n_plus i))
-    done ;
-    for i=0 to k do
-      IND_solver.assume ~id:(k+4+i) (ok (n_plus i))
-    done ;
-    let ns = List.map (fun i -> n_plus i) (create_list k) in
-    IND_solver.assume ~id:(k+k+5) (path_compressed_formula ns) ;
-    IND_solver.check () ;
-    let inductive = IND_solver.entails ~id:(k+k+6) (ok (n_plus (k+1))) in
-    
-    (* Result *)
     if not base then False
-    else if not inductive then Unknown
-    else True
+    else begin
+      (* Inductive case *)
+      IND_solver.clear () ;
+      IND_solver.assume ~id:1 n_ge_0 ;
+      for i=0 to k+1 do
+        IND_solver.assume ~id:(i+2) (delta (n_plus i))
+      done ;
+      for i=0 to k do
+        IND_solver.assume ~id:(k+4+i) (ok (n_plus i))
+      done ;
+      let ns = List.map (fun i -> n_plus i) (create_list k) in
+      IND_solver.assume ~id:(k+k+5) (path_compressed_formula ns) ;
+      IND_solver.check () ;
+      let inductive = IND_solver.entails ~id:(k+k+6) (ok (n_plus (k+1))) in
+      
+      if inductive then True
+      else Unknown
+    end
   end
 
 let check ft main_node_name =
