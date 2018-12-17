@@ -1,0 +1,7 @@
+node check() returns (OK:bool);
+var x,y: int;
+let
+	x = 1 -> pre(x+y);
+	y = 1 -> pre(y+x);
+	OK = y >= 1;
+tel
