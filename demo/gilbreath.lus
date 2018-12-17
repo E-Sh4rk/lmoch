@@ -1,0 +1,14 @@
+
+node check (c:bool)
+returns (OK: bool);
+var o, ps1, s1, ps2, s2, half : bool;
+let
+  s1 = if c then not ps1 else ps1;
+  ps1 = false -> pre s1;
+  s2 = if not c then not ps2 else ps2;
+  ps2 = true -> pre s2;
+  o = if c then s1 else s2;
+  half = false -> not (pre half);
+  OK = true -> not (half and (o = pre o));
+tel;
+
