@@ -64,19 +64,19 @@ let check_k_induction ft main_node k =
     BMC_solver.assume ~id:(i+1) (delta (term_of_int i))
   done ;
   BMC_solver.check () ;
-  (* End condition based on path compression (http://homepage.cs.uiowa.edu/~tinelli/papers/HagTin-FMCAD-08.pdf) *)
-  let ns = List.map (fun i -> term_of_int i) (create_list k) in
-  let complete = BMC_solver.entails ~id:(k+2) (Formula.make Formula.Not [path_compressed_formula ns]) in
-  if complete
-  then begin
-    debug_str "All compressed paths have been explored.";
-    True
-  end else begin
-    let ok_fs = List.map (fun i -> ok (term_of_int i)) (create_list k) in
-    let base = BMC_solver.entails ~id:(k+2) (conjunction ok_fs) in
-
-    if not base then False
-    else begin
+ 
+  let ok_fs = List.map (fun i -> ok (term_of_int i)) (create_list k) in
+  let base = BMC_solver.entails ~id:(k+2) (conjunction ok_fs) in
+  if not base then False
+  else begin
+   (* End condition based on path compression (http://homepage.cs.uiowa.edu/~tinelli/papers/HagTin-FMCAD-08.pdf) *)
+    let ns = List.map (fun i -> term_of_int i) (create_list k) in
+    let complete = BMC_solver.entails ~id:(k+2) (Formula.make Formula.Not [path_compressed_formula ns]) in
+    if complete
+    then begin
+      debug_str "All compressed paths have been explored.";
+      True
+    end else begin
       (* Inductive case *)
       IND_solver.clear () ;
       IND_solver.assume ~id:1 n_ge_0 ;
